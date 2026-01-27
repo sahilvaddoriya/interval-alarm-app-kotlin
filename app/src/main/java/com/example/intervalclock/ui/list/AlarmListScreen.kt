@@ -75,7 +75,8 @@ fun AlarmListScreen(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
     // We need the EditViewModel here to pass manual loading commands
     val editViewModel: EditAlarmViewModel = hiltViewModel()
 
@@ -180,8 +181,13 @@ fun AlarmListScreen(
             ) {
                 EditAlarmSheetContent(
                     onDismiss = {
-                        val scope = CoroutineScope(Dispatchers.Main)
-                        scope.launch { sheetState.hide() }.invokeOnCompletion { 
+                        scope.launch { 
+                            try {
+                                sheetState.hide() 
+                            } catch (e: Exception) {
+                                // Ignore illegal state or cancellation if already hidden
+                            }
+                        }.invokeOnCompletion { 
                             if (!sheetState.isVisible) {
                                 showBottomSheet = false
                             }

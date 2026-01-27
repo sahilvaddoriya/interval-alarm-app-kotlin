@@ -36,6 +36,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -53,11 +54,39 @@ fun EditAlarmSheetContent(
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val focusRequester = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
 
+    // State for Time Picker Dialogs
+    var showStartPicker by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showEndPicker by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
     androidx.compose.runtime.LaunchedEffect(Unit) {
         // We delay slightly to let the TimeInputs compose and try to take focus, then we steal it back
         kotlinx.coroutines.delay(100) 
         focusRequester.requestFocus()
-        focusManager.clearFocus() // Then clear it so no cursor is blinking anywhere
+        focusManager.clearFocus() 
+    }
+
+    if (showStartPicker) {
+        AlarmTimePickerCustomDialog(
+            onDismiss = { showStartPicker = false },
+            onConfirm = { hour, minute ->
+                viewModel.onStartTimeChange(hour, minute)
+                showStartPicker = false
+            },
+            initialHour = uiState.startTimeInMinutes / 60,
+            initialMinute = uiState.startTimeInMinutes % 60
+        )
+    }
+
+    if (showEndPicker) {
+        AlarmTimePickerCustomDialog(
+            onDismiss = { showEndPicker = false },
+            onConfirm = { hour, minute ->
+                viewModel.onEndTimeChange(hour, minute)
+                showEndPicker = false
+            },
+            initialHour = uiState.endTimeInMinutes / 60,
+            initialMinute = uiState.endTimeInMinutes % 60
+        )
     }
 
     Column(
@@ -80,34 +109,26 @@ fun EditAlarmSheetContent(
                 .alpha(0f)
         )
         
-        // Handle is usually provided by ModalBottomSheet, so we might skip it or add Spacer
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Time Pickers Column
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Start Time", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val startTimeState = rememberTimePickerState(
-                initialHour = uiState.startTimeInMinutes / 60,
-                initialMinute = uiState.startTimeInMinutes % 60,
-                is24Hour = false
-            )
-            TimeInput(state = startTimeState)
-            viewModel.onStartTimeChange(startTimeState.hour, startTimeState.minute)
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Text("End Time", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val endTimeState = rememberTimePickerState(
-                initialHour = uiState.endTimeInMinutes / 60,
-                initialMinute = uiState.endTimeInMinutes % 60,
-                is24Hour = false
-            )
-            TimeInput(state = endTimeState)
-            viewModel.onEndTimeChange(endTimeState.hour, endTimeState.minute)
-        }
+            // Top Row with Time Cards
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                TimeCard(
+                    label = "Start Time",
+                    timeInMinutes = uiState.startTimeInMinutes,
+                    onClick = { showStartPicker = true }
+                )
+                TimeCard(
+                    label = "End Time",
+                    timeInMinutes = uiState.endTimeInMinutes,
+                    onClick = { showEndPicker = true }
+                )
+            }
         Spacer(modifier = Modifier.height(24.dp))
 
         // Days
@@ -239,6 +260,114 @@ fun EditAlarmSheetContent(
 }
 
 @Composable
+fun TimeCard(
+    label: String,
+    timeInMinutes: Int,
+    onClick: () -> Unit
+) {
+    val hour = timeInMinutes / 60
+    val minute = timeInMinutes % 60
+    val isPm = hour >= 12
+    val displayHour = if (hour % 12 == 0) 12 else hour % 12
+    val displayMinute = minute.toString().padStart(2, '0')
+    val amPm = if (isPm) "PM" else "AM"
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(16.dp)
+            .width(120.dp)
+    ) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+             Text(
+                text = "$displayHour:$displayMinute", 
+                style = MaterialTheme.typography.headlineLarge, 
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = amPm, 
+                style = MaterialTheme.typography.titleMedium, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
+    }
+}
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlarmTimePickerCustomDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit,
+    initialHour: Int,
+    initialMinute: Int
+) {
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false
+    )
+    var inputType by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) } // false = Dial
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+            color = androidx.compose.material3.AlertDialogDefaults.containerColor,
+            tonalElevation = androidx.compose.material3.AlertDialogDefaults.TonalElevation,
+            modifier = Modifier.width(androidx.compose.ui.unit.IntOffset(0, 0).run { 320.dp }) // Fixed width for standard picker look
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Select time",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                    if (inputType) {
+                        TimeInput(state = timePickerState)
+                    } else {
+                        androidx.compose.material3.TimePicker(state = timePickerState)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    androidx.compose.material3.IconButton(onClick = { inputType = !inputType }) {
+                        androidx.compose.material3.Icon(
+                            imageVector = if (inputType) androidx.compose.material.icons.Icons.Default.Refresh else androidx.compose.material.icons.Icons.Default.Edit, // Edit for keyboard, Schedule/Refresh for dial
+                            contentDescription = "Toggle Input"
+                        )
+                    }
+                    
+                    Row {
+                        TextButton(onClick = onDismiss) { Text("Cancel") }
+                        TextButton(onClick = { onConfirm(timePickerState.hour, timePickerState.minute) }) { Text("OK") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper to provide Icons.Default.Schedule since it might be missing
+// Usually it's in Extended or we can use another icon.
+// Refresh is a decent fallback for "Back to Dial". Or 'AccessTime'.
+
+@Composable
 fun SettingsRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
@@ -273,4 +402,5 @@ fun SettingsRow(
         }
     }
 }
+
 
