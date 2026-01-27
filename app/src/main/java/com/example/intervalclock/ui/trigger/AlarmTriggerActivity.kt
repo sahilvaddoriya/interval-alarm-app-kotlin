@@ -53,7 +53,6 @@ class AlarmTriggerActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        showWhenLockedAndTurnScreenOn()
         super.onCreate(savedInstanceState)
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -79,6 +78,29 @@ class AlarmTriggerActivity : ComponentActivity() {
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Unconditionally apply all flags for maximum compatibility
+        // Some devices require these flags to be set before or during window attach
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+        )
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            keyguardManager.requestDismissKeyguard(this, null)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {
@@ -86,24 +108,6 @@ class AlarmTriggerActivity : ComponentActivity() {
         } catch (e: IllegalArgumentException) {
             // Already unregistered
         }
-    }
-    
-    private fun showWhenLockedAndTurnScreenOn() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-            )
-        }
-        with(getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                requestDismissKeyguard(this@AlarmTriggerActivity, null)
-            }
-        }
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 }
 

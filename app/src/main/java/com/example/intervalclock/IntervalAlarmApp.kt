@@ -15,7 +15,7 @@ class IntervalAlarmApp : Application() {
             val name = "Interval Alarm"
             val descriptionText = "Channel for Interval Alarms"
             val importance = android.app.NotificationManager.IMPORTANCE_HIGH
-            val channel = android.app.NotificationChannel("ALARM_CHANNEL_ID", name, importance).apply {
+            val channel = android.app.NotificationChannel("ALARM_CHANNEL_ID_V2", name, importance).apply {
                 description = descriptionText
                 setSound(null, null) // Custom sound management in Activity usually, or set sound here
             }

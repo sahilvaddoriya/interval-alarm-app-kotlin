@@ -51,6 +51,9 @@
             android:name=".ui.trigger.AlarmTriggerActivity"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.IntervalAlarmClock.FullScreen"
             android:exported="false" />
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class AlarmService : Service() {
 
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var ringtone: Ringtone? = null
 
     @javax.inject.Inject
@@ -25,6 +26,15 @@ class AlarmService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+         val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+         wakeLock = powerManager.newWakeLock(
+            android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "IntervalAlarmClock::AlarmServiceWakeLock"
+         )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -35,6 +45,10 @@ class AlarmService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        
+        // Acquire wake lock to keep CPU running while alarm rings
+        // Use a timeout (e.g., 10 minutes) to be safe against battery drain if service not stopped
+        wakeLock?.acquire(10 * 60 * 1000L /*10 minutes*/)
 
         if (alarmId != -1) {
             playRingtone()
@@ -81,7 +95,7 @@ class AlarmService : Service() {
     private fun showNotification(alarmId: Int) {
         val fullScreenIntent = Intent(this, AlarmTriggerActivity::class.java).apply {
             putExtra("ALARM_ID", alarmId)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
         }
         
         val fullScreenPendingIntent = PendingIntent.getActivity(
@@ -102,13 +116,14 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, "ALARM_CHANNEL_ID")
+        val notification = NotificationCompat.Builder(this, "ALARM_CHANNEL_ID_V2")
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle("Interval Alarm")
             .setContentText("Alarm is ringing")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(R.drawable.ic_launcher, "Dismiss", stopPendingIntent)
             .setOngoing(true)
             .build()
@@ -119,8 +134,7 @@ class AlarmService : Service() {
         try {
             startActivity(fullScreenIntent)
         } catch (e: Exception) {
-            // Might occur on Android 10+ if background start restrictions apply
-            // The FullScreenIntent in notification is the fallback
+             // Fallback handled by FullScreenIntent
             e.printStackTrace()
         }
     }
@@ -128,5 +142,8 @@ class AlarmService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         ringtone?.stop()
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
     }
 }
