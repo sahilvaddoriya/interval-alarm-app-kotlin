@@ -42,6 +42,9 @@ class AlarmService : Service() {
         val action = intent?.action
 
         if (action == "STOP_ALARM") {
+            val dismissIntent = Intent("ACTION_DISMISS_ALARM_UI")
+            dismissIntent.setPackage(packageName)
+            sendBroadcast(dismissIntent)
             stopSelf()
             return START_NOT_STICKY
         }
