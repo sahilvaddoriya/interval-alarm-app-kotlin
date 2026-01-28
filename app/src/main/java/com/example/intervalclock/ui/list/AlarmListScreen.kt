@@ -41,11 +41,12 @@ import kotlinx.coroutines.Dispatchers
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmListScreen(
-    viewModel: AlarmListViewModel = hiltViewModel(),
-    onNavigateToEdit: (Int?) -> Unit // Kept for compatibility but unused
+    viewModel: AlarmListViewModel = hiltViewModel()
 ) {
     val alarms by viewModel.alarms.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // State for permissions
     var hasExactAlarmPermission by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -56,14 +57,47 @@ fun AlarmListScreen(
             }
         )
     }
+
+    var canDrawOverlays by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.provider.Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+        )
+    }
+
+    var canUseFullScreenIntent by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+                notificationManager.canUseFullScreenIntent()
+            } else {
+                true
+            }
+        )
+    }
     
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                 // Check Exact Alarm Permission
                  if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                     val alarmManager = context.getSystemService(android.app.AlarmManager::class.java)
                     hasExactAlarmPermission = alarmManager.canScheduleExactAlarms()
+                }
+                
+                // Check Overlay Permission
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
+                }
+                
+                // Check Full Screen Intent Permission
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+                    canUseFullScreenIntent = notificationManager.canUseFullScreenIntent()
                 }
             }
         }
@@ -128,15 +162,9 @@ fun AlarmListScreen(
                 }
             }
             
-            
-            // Check for System Alert Window Permission (Display over other apps)
-            // This is required to force the activity to open even if the phone is unlocked
-            val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                android.provider.Settings.canDrawOverlays(context)
-            } else {
-                true
-            }
 
+            
+            
             if (!canDrawOverlays) {
                  androidx.compose.material3.Surface(
                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -160,15 +188,7 @@ fun AlarmListScreen(
                     }
                 }
             }
-            
-            // Check for Full Screen Intent Permission (Android 14+)
-            val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
-            val canUseFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                notificationManager.canUseFullScreenIntent()
-            } else {
-                true
-            }
-            
+
             if (!canUseFullScreenIntent) {
                  androidx.compose.material3.Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
