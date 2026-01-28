@@ -41,11 +41,12 @@ import kotlinx.coroutines.Dispatchers
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmListScreen(
-    viewModel: AlarmListViewModel = hiltViewModel(),
-    onNavigateToEdit: (Int?) -> Unit // Kept for compatibility but unused
+    viewModel: AlarmListViewModel = hiltViewModel()
 ) {
     val alarms by viewModel.alarms.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // State for permissions
     var hasExactAlarmPermission by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -56,14 +57,47 @@ fun AlarmListScreen(
             }
         )
     }
+
+    var canDrawOverlays by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.provider.Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+        )
+    }
+
+    var canUseFullScreenIntent by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+                notificationManager.canUseFullScreenIntent()
+            } else {
+                true
+            }
+        )
+    }
     
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                 // Check Exact Alarm Permission
                  if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                     val alarmManager = context.getSystemService(android.app.AlarmManager::class.java)
                     hasExactAlarmPermission = alarmManager.canScheduleExactAlarms()
+                }
+                
+                // Check Overlay Permission
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
+                }
+                
+                // Check Full Screen Intent Permission
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+                    canUseFullScreenIntent = notificationManager.canUseFullScreenIntent()
                 }
             }
         }
@@ -124,6 +158,64 @@ fun AlarmListScreen(
                         Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = null)
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
                         Text("Permission needed to schedule exact alarms. Tap to grant.", color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            }
+            
+
+            
+            
+            if (!canDrawOverlays) {
+                 androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    onClick = {
+                        val intent = android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+                        )
+                        intent.data = android.net.Uri.parse("package:${context.packageName}")
+                        context.startActivity(intent)
+                    }
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
+                        Text("Permission needed to show alarm while using phone. Tap to grant.", color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    }
+                }
+            }
+
+            if (!canUseFullScreenIntent) {
+                 androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    onClick = {
+                        val intent = android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT
+                        )
+                        intent.data = android.net.Uri.parse("package:${context.packageName}")
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // Fallback to general settings
+                            val fallback = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            fallback.data = android.net.Uri.parse("package:${context.packageName}")
+                            context.startActivity(fallback)
+                        }
+                    }
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = null)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
+                        Text("Permission needed for Full Screen Alarm. Tap to grant.", color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
             }
