@@ -268,8 +268,8 @@ fun AlarmListScreen(
             ModalBottomSheet(
                 onDismissRequest = { showBottomSheet = false },
                 sheetState = sheetState,
-                containerColor = com.example.intervalclock.ui.theme.ClockDarkGrey, // Match card color or darker
-                tonalElevation = 0.dp
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
             ) {
                 EditAlarmSheetContent(
                     onDismiss = {
