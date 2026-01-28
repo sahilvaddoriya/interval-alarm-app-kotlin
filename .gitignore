@@ -29,3 +29,8 @@ local.properties
 
 # Gradle cache
 .gradle/
+
+# Keystore
+*.keystore
+*.jks
+keystore.properties
