@@ -116,17 +116,16 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val channelId = "ALARM_CHANNEL_ID_V3"
+        val channelId = "ALARM_CHANNEL_ID_V4"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Interval Alarm High Priority"
             val descriptionText = "Immediate alarm notifications"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = android.app.NotificationChannel(channelId, name, importance).apply {
                 description = descriptionText
-                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build())
+                // Disable sound on the notification channel to prevent double ringing (echo)
+                // because we are playing the ringtone manually in playRingtone()
+                setSound(null, null) 
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
