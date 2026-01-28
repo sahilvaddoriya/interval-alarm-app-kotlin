@@ -43,9 +43,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = Screen.AlarmList.route) {
                         composable(Screen.AlarmList.route) {
-                            AlarmListScreen(
-                                onNavigateToEdit = { /* No-op, handled internally by Sheet */ }
-                            )
+                            AlarmListScreen()
                         }
                     }
                 }
