@@ -95,7 +95,7 @@ class AlarmService : Service() {
     private fun showNotification(alarmId: Int) {
         val fullScreenIntent = Intent(this, AlarmTriggerActivity::class.java).apply {
             putExtra("ALARM_ID", alarmId)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         
         val fullScreenPendingIntent = PendingIntent.getActivity(
@@ -116,7 +116,24 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, "ALARM_CHANNEL_ID_V2")
+        val channelId = "ALARM_CHANNEL_ID_V3"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Interval Alarm High Priority"
+            val descriptionText = "Immediate alarm notifications"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = android.app.NotificationChannel(channelId, name, importance).apply {
+                description = descriptionText
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle("Interval Alarm")
             .setContentText("Alarm is ringing")

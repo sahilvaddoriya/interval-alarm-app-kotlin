@@ -128,6 +128,45 @@ fun AlarmListScreen(
                 }
             }
             
+            // Check for Full Screen Intent Permission (Android 14+)
+            val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+            val canUseFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                notificationManager.canUseFullScreenIntent()
+            } else {
+                true
+            }
+            
+            if (!canUseFullScreenIntent) {
+                 androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    onClick = {
+                        val intent = android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT
+                        )
+                        intent.data = android.net.Uri.parse("package:${context.packageName}")
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // Fallback to general settings
+                            val fallback = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            fallback.data = android.net.Uri.parse("package:${context.packageName}")
+                            context.startActivity(fallback)
+                        }
+                    }
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = null)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
+                        Text("Permission needed for Full Screen Alarm. Tap to grant.", color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            }
+            
             if (alarms.isEmpty()) {
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier.fillMaxSize(),
