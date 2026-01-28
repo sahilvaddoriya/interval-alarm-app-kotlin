@@ -34,7 +34,7 @@ fun AlarmItem(
             .clickable { onClick() },
         shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp), // Google Clock style
         colors = CardDefaults.cardColors(
-            containerColor = if (alarm.isEnabled) com.example.intervalclock.ui.theme.ClockPurple else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (alarm.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -52,13 +52,13 @@ fun AlarmItem(
                     Text(
                         text = start.format(formatter),
                         style = MaterialTheme.typography.displayMedium, // Larger font
-                        color = if (alarm.isEnabled) com.example.intervalclock.ui.theme.ClockPurpleText else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (alarm.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = start.format(amPmFormatter).lowercase(),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(bottom = 8.dp, start = 4.dp),
-                         color = if (alarm.isEnabled) com.example.intervalclock.ui.theme.ClockPurpleText else MaterialTheme.colorScheme.onSurfaceVariant
+                         color = if (alarm.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
