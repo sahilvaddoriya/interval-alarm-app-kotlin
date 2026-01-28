@@ -128,6 +128,39 @@ fun AlarmListScreen(
                 }
             }
             
+            
+            // Check for System Alert Window Permission (Display over other apps)
+            // This is required to force the activity to open even if the phone is unlocked
+            val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.provider.Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+
+            if (!canDrawOverlays) {
+                 androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    onClick = {
+                        val intent = android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+                        )
+                        intent.data = android.net.Uri.parse("package:${context.packageName}")
+                        context.startActivity(intent)
+                    }
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
+                        Text("Permission needed to show alarm while using phone. Tap to grant.", color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    }
+                }
+            }
+            
             // Check for Full Screen Intent Permission (Android 14+)
             val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
             val canUseFullScreenIntent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
