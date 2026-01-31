@@ -115,11 +115,6 @@ fun AlarmListScreen(
     val editViewModel: EditAlarmViewModel = hiltViewModel()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Alarms", style = MaterialTheme.typography.titleLarge) }
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { 

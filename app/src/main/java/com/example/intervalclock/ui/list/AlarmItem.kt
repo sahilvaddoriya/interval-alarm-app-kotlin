@@ -48,17 +48,20 @@ fun AlarmItem(
                 val formatter = DateTimeFormatter.ofPattern("hh:mm")
                 val amPmFormatter = DateTimeFormatter.ofPattern("a")
                 
+                // Determine content color based on card state for optimal contrast
+                val contentColor = if (alarm.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = start.format(formatter),
                         style = MaterialTheme.typography.displayMedium, // Larger font
-                        color = if (alarm.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = contentColor
                     )
                     Text(
                         text = start.format(amPmFormatter).lowercase(),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(bottom = 8.dp, start = 4.dp),
-                         color = if (alarm.isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                         color = contentColor
                     )
                 }
                 
@@ -67,7 +70,7 @@ fun AlarmItem(
                 Text(
                     text = "Until ${end.format(DateTimeFormatter.ofPattern("hh:mm a"))} • Every ${alarm.intervalInMinutes} min",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
                 
                 val daysText = formatDays(alarm.daysOfWeek) 
@@ -75,14 +78,15 @@ fun AlarmItem(
                 Text(
                     text = daysText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
                 
                 if (alarm.label.isNotBlank()) {
                      Text(
                         text = alarm.label,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        // Use primary color when disabled to stand out, but contentColor (onPrimaryContainer) when enabled
+                        color = if (alarm.isEnabled) contentColor else MaterialTheme.colorScheme.primary
                     )
                 }
                 
@@ -94,7 +98,7 @@ fun AlarmItem(
                      Text(
                         text = "Next: ${nextTime.format(nextFormatter)}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = contentColor 
                     )
                 }
             }
